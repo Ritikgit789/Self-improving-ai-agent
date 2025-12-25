@@ -1,0 +1,39 @@
+# .gitignore
+
+# Environment variables
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual environments
+venv/
+env/
+ENV/
+.venv
+veenv/
+
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Memory data (optional - include if you want to reset learning in git)
+# data/mistakes.json
+QUICKSTART.md
+TEST_LEARNING.md
+EXAMPLES.md

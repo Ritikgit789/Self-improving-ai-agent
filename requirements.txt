@@ -1,0 +1,9 @@
+groq
+langchain
+langchain-groq
+langchain-community
+ddgs
+pydantic
+python-dotenv
+colorama
+httpx
