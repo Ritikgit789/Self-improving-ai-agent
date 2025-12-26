@@ -2,22 +2,22 @@
   "mistakes": [
     {
       "mistake_type": "TOOL_SKIPPED",
-      "description": "Failed to execute web_search for question: What is AI?",
+      "description": "Failed to execute web_search for question: Who invented the telephone?",
       "corrective_rule": "ALWAYS execute web_search before attempting to answer research questions",
       "frequency": 2,
-      "timestamp": "2025-12-25T23:14:38.380841",
-      "question": "What is AI?"
+      "timestamp": "2025-12-26T11:07:50.352425",
+      "question": "Who invented the telephone?"
     },
     {
       "mistake_type": "WRONG_ORDER",
-      "description": "Tools executed in wrong order for: What is AI?",
+      "description": "Tools executed in wrong order for: Who invented the telephone?",
       "corrective_rule": "ALWAYS execute web_search BEFORE summarize",
       "frequency": 2,
-      "timestamp": "2025-12-25T23:14:38.380841",
-      "question": "What is AI?"
+      "timestamp": "2025-12-26T11:07:50.352425",
+      "question": "Who invented the telephone?"
     }
   ],
   "version": "1.0",
-  "total_runs": 4,
-  "successful_runs": 2
+  "total_runs": 5,
+  "successful_runs": 3
 }

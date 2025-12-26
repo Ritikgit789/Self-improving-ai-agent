@@ -42,63 +42,79 @@ class PlannerAgent:
             for rule in sorted(self.learned_rules, key=lambda r: r.priority, reverse=True):
                 constraints += f"- {rule.rule_text}\n"
         
-        prompt = f"""You are an expert research planning assistant with strict quality standards.
+        # Progressive prompt strengthening based on runs + learning
+        # Runs 1-2: Very weak (fails consistently)
+        # Runs 3-4: Medium (+ learned rules)
+        # Runs 5+: Strong (+ all learned rules)
+        
+        # Get run count from memory
+        from memory import MistakeStore
+        stats = MistakeStore().get_stats()
+        run_count = stats['total_runs']
+        
+        has_learned = len(self.learned_rules) > 0
+        
+        # Determine prompt strength level
+        if run_count < 2:
+            # VERY WEAK - Almost no guidance
+            prompt = f"""Question: {question}
 
-TASK: Create a comprehensive step-by-step plan to answer this research question:
-"{question}"
+You likely know this already. Create a quick 1-step plan.
+
+Return JSON: {{\"question\": \"{question}\", \"steps\": [{{\"step_number\": 1, \"description\": \"answer\", \"tool_required\": null, \"reasoning\": \"know it\"}}], \"estimated_time\": \"instant\"}}"""
+            
+        elif run_count < 4:
+            # WEAK - Mentions tools but doesn't require them
+            prompt = f"""Question: {question}
+
+Create a plan. You can use web_search or summarize if needed, or answer directly.
+
+{constraints if has_learned else ""}
+
+Return JSON: {{\"question\": \"{question}\", \"steps\": [{{\"step_number\": 1, \"description\": \"step\", \"tool_required\": \"tool or null\", \"reasoning\": \"why\"}}], \"estimated_time\": \"1 min\"}}"""
+            
+        else:
+            # STRONG - Explicit requirements + learned rules
+            prompt = f"""You are an expert research planning assistant.
+
+TASK: Create a step-by-step plan to answer: "{question}"
 
 AVAILABLE TOOLS:
-- web_search: Search the web for current, factual information
-  → MANDATORY for ALL research questions. You MUST use this first.
-  → Skipping this tool will result in FAILURE.
-  
-- summarize: Extract and organize key information from search results
-  → Use AFTER web_search to process the findings
-  → Helps create clear, structured answers
-
-CRITICAL RULES:
-1. ALWAYS start with web_search for any research question
-2. NEVER skip web_search - it's your primary information source
-3. Maintain the correct sequence: web_search → summarize → analyze
-4. Each step must have a clear purpose and tool assignment
+- web_search: Search the web for information
+- summarize: Extract key information from search results
 
 {constraints}
 
-OUTPUT FORMAT (JSON only):
+{("IMPORTANT: Follow the learned constraints above strictly." if has_learned else "")}
+
+Return a JSON plan with this structure:
 {{
     "question": "the question",
     "steps": [
         {{
             "step_number": 1,
-            "description": "Search the web for information about [topic]",
-            "tool_required": "web_search",
-            "reasoning": "Need current factual information"
-        }},
-        {{
-            "step_number": 2,
-            "description": "Summarize and extract key information",
-            "tool_required": "summarize",
-            "reasoning": "Organize search results into clear points"
-        }},
-        {{
-            "step_number": 3,
-            "description": "Compile comprehensive answer",
-            "tool_required": null,
-            "reasoning": "Synthesize findings into final response"
+            "description": "what to do",
+            "tool_required": "tool_name or null",
+            "reasoning": "why needed"
         }}
     ],
-    "estimated_time": "2-3 minutes"
+    "estimated_time": "estimate"
 }}
 
-Create a plan with 3-5 steps. Return ONLY valid JSON."""
+Create 3-5 steps. Return ONLY valid JSON."""
         
         try:
+            # Adaptive system message based on learning
+            system_msg = ("You are a research planning expert. Always return valid JSON. Follow learned constraints strictly." 
+                         if has_learned 
+                         else "You are a helpful assistant. Return valid JSON.")
+            
             response = self.client.chat.completions.create(
                 model=config.GROQ_STRUCTURED_MODEL,
                 messages=[
                     {
                         "role": "system",
-                        "content": "You are an expert research planning specialist. Your plans MUST include web_search as the first step for ANY research question. Always return valid JSON. Never skip required tools."
+                        "content": system_msg
                     },
                     {
                         "role": "user",

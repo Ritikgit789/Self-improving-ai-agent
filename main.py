@@ -24,12 +24,8 @@ class ResearchAgent:
     Self-improving research agent that learns from mistakes
     """
     
-    def __init__(self, mistake_probability: float = 0.0, auto_learning_mode: bool = True):
-        """
-        Args:
-            mistake_probability: Probability of making mistakes (for demonstration)
-            auto_learning_mode: If True, automatically adjust mistake rate for first few runs
-        """
+    def __init__(self):
+        """Initialize the self-improving research agent"""
         # Check API key
         if not config.GROQ_API_KEY:
             print(f"{Fore.RED}❌ ERROR: GROQ_API_KEY not found in environment variables{Style.RESET_ALL}")
@@ -38,27 +34,12 @@ class ResearchAgent:
             print(f"\nGet your key from: https://console.groq.com/keys")
             sys.exit(1)
         
-        # Initialize memory first to check run count
+        # Initialize memory first
         self.memory = MistakeStore()
-        
-        # Auto-adjust mistake probability for demonstration
-        if auto_learning_mode and mistake_probability == 0.0:
-            stats = self.memory.get_stats()
-            total_runs = stats['total_runs']
-            
-            # First 3 runs: High mistake rate to demonstrate learning
-            if total_runs < 3:
-                mistake_probability = 0.6  # 60% chance of mistakes
-                print(f"{Fore.YELLOW}🎓 Learning Mode: Run {total_runs + 1}/3 - Will make mistakes to learn{Style.RESET_ALL}\n")
-            elif total_runs < 5:
-                mistake_probability = 0.3  # 30% chance
-                print(f"{Fore.YELLOW}🎓 Learning Mode: Run {total_runs + 1}/5 - Reducing mistake rate{Style.RESET_ALL}\n")
-            else:
-                mistake_probability = 0.0  # No forced mistakes
         
         # Initialize agents
         self.planner = PlannerAgent()
-        self.executor = ExecutorAgent(mistake_probability=mistake_probability)
+        self.executor = ExecutorAgent()  # No more mistake_probability!
         self.evaluator = EvaluatorAgent()
         self.learner = LearnerAgent()
         
@@ -186,13 +167,6 @@ def main():
         action="store_true",
         help="Show learning statistics"
     )
-    parser.add_argument(
-        "--mistake-rate",
-        type=float,
-        default=0.0,
-        help="Probability of making mistakes (0.0-1.0, for demonstration)"
-    )
-    
     args = parser.parse_args()
     
     # Clear memory if requested
@@ -226,7 +200,7 @@ def main():
         return
     
     # Run research
-    agent = ResearchAgent(mistake_probability=args.mistake_rate)
+    agent = ResearchAgent()
     agent.research(args.question)
 
 
@@ -255,12 +229,12 @@ def run_demo():
         "Who invented the telephone?"
     ]
     
-    # Phase 1: High mistake rate
+    # Phase 1: Initial runs with weak prompts
     print(f"\n{Fore.MAGENTA}{'='*70}{Style.RESET_ALL}")
-    print(f"{Fore.MAGENTA}PHASE 1: INITIAL RUNS (Making Mistakes){Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}PHASE 1: INITIAL RUNS (Weak Prompts - Natural Mistakes){Style.RESET_ALL}")
     print(f"{Fore.MAGENTA}{'='*70}{Style.RESET_ALL}")
     
-    agent_v1 = ResearchAgent(mistake_probability=0.7)  # 70% chance of mistakes
+    agent_v1 = ResearchAgent()
     
     for question in questions[:2]:
         agent_v1.research(question)
@@ -281,12 +255,12 @@ def run_demo():
     
     input(f"{Fore.CYAN}Press Enter to see improved performance...{Style.RESET_ALL}\n")
     
-    # Phase 3: Improved performance
+    # Phase 3: Improved performance with learned constraints
     print(f"\n{Fore.MAGENTA}{'='*70}{Style.RESET_ALL}")
-    print(f"{Fore.MAGENTA}PHASE 3: IMPROVED RUNS (Learning Applied){Style.RESET_ALL}")
+    print(f"{Fore.MAGENTA}PHASE 3: IMPROVED RUNS (Strong Prompts + Learned Rules){Style.RESET_ALL}")
     print(f"{Fore.MAGENTA}{'='*70}{Style.RESET_ALL}")
     
-    agent_v2 = ResearchAgent(mistake_probability=0.2)  # 20% chance of mistakes
+    agent_v2 = ResearchAgent()  # Will load learned rules
     
     for question in questions[2:]:
         agent_v2.research(question)

@@ -63,33 +63,38 @@ class MistakeStore:
             print(f"⚠️  Error saving mistakes: {e}")
     
     def add_mistakes(self, new_mistakes: List[Mistake]):
-        """Add new mistakes to storage"""
+        """
+        Add new mistakes to the store, merging with existing ones
+        """
         snapshot = self.load()
         
-        # Merge new mistakes, updating frequency for duplicates
         for new_mistake in new_mistakes:
-            # Check if this mistake type already exists
-            existing = next(
-                (m for m in snapshot.mistakes if m.mistake_type == new_mistake.mistake_type),
-                None
-            )
+            # Check if similar mistake already exists
+            existing = None
+            for stored_mistake in snapshot.mistakes:
+                if (stored_mistake.mistake_type == new_mistake.mistake_type and
+                    stored_mistake.corrective_rule == new_mistake.corrective_rule):
+                    existing = stored_mistake
+                    break
             
             if existing:
-                # Update frequency and timestamp
+                # Update existing mistake with new occurrence
                 existing.frequency += 1
                 existing.timestamp = new_mistake.timestamp
+                existing.question = new_mistake.question  # ← FIX: Update to latest question
+                existing.description = new_mistake.description  # ← FIX: Update description
             else:
                 # Add new mistake
                 snapshot.mistakes.append(new_mistake)
         
-        # Limit total stored mistakes
+        # Keep only recent mistakes
         if len(snapshot.mistakes) > config.MAX_MISTAKES_STORED:
-            # Keep most frequent mistakes
-            snapshot.mistakes = sorted(
-                snapshot.mistakes,
-                key=lambda m: m.frequency,
+            # Sort by frequency and recency
+            snapshot.mistakes.sort(
+                key=lambda m: (m.frequency, m.timestamp),
                 reverse=True
-            )[:config.MAX_MISTAKES_STORED]
+            )
+            snapshot.mistakes = snapshot.mistakes[:config.MAX_MISTAKES_STORED]
         
         self.save(snapshot)
     

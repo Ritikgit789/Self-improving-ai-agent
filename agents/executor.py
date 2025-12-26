@@ -16,16 +16,14 @@ class ExecutorAgent:
     Can intentionally make mistakes in early runs to demonstrate learning.
     """
     
-    def __init__(self, mistake_probability: float = 0.0):
+    def __init__(self):
         """
-        Args:
-            mistake_probability: 0.0-1.0, chance of making mistakes (for demonstration)
+        Initialize executor agent
         """
         if not config.GROQ_API_KEY:
             raise ValueError("GROQ_API_KEY not set")
         
         self.client = Groq(api_key=config.GROQ_API_KEY)
-        self.mistake_probability = mistake_probability
     
     def execute_plan(self, plan: ResearchPlan) -> ExecutionTrace:
         """
@@ -45,16 +43,6 @@ class ExecutorAgent:
         
         for step in plan.steps:
             print(f"Step {step.step_number}: {step.description}")
-            
-            # Simulate mistake: randomly skip required tools
-            if step.tool_required == "web_search" and self._should_make_mistake():
-                print("  ⚠️  Skipping web search (mistake mode)")
-                tools_executed.append(ToolExecution(
-                    tool_name="web_search",
-                    executed=False,
-                    output_summary="Skipped intentionally"
-                ))
-                continue
             
             # Execute the required tool
             if step.tool_required == "web_search":
@@ -78,15 +66,6 @@ class ExecutorAgent:
                     print(f"  ✗ Web search failed: {e}")
             
             elif step.tool_required == "summarize":
-                # Simulate mistake: skip summarization sometimes
-                if self._should_make_mistake():
-                    print("  ⚠️  Skipping summarization (mistake mode)")
-                    tools_executed.append(ToolExecution(
-                        tool_name="summarize",
-                        executed=False,
-                        output_summary="Skipped intentionally"
-                    ))
-                    continue
                 
                 try:
                     if search_data:
@@ -128,16 +107,10 @@ class ExecutorAgent:
             execution_time_seconds=execution_time
         )
     
-    def _should_make_mistake(self) -> bool:
-        """Determine if agent should make a mistake (for demonstration)"""
-        return random.random() < self.mistake_probability
+
     
     def _generate_answer(self, question: str, search_data: str) -> str:
         """Generate final answer using LLM"""
-        
-        # Simulate mistake: answer without data sometimes
-        if not search_data and self._should_make_mistake():
-            return self._answer_without_data(question)
         
         context = search_data if search_data else "No search data available"
         
